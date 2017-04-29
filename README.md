@@ -115,14 +115,14 @@ Scalability :
 - Can be duplicated on CI
 - But not realy artifact I can share/deploy
 
-# What is an application ?
+## What is an application ?
 
-## Is it a function ?
+### Is it a function ?
 - Deployed independently
 - Versioned independently
 > What about shared libraries between functions
 
-## Is in all my functions
+### Is in all my functions
 - Versioned as a whole ? 
 - With bundled shared libraries
 - Same artifcat with different
