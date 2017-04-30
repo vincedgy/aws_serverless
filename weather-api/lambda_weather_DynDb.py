@@ -9,7 +9,7 @@ The purpose of this lambda is to be assembled with API Gateway.BaseException
 This lambda has been first writen durint TIAD Camp organized by D2Si on 2017/04/27 in Paris
 Enjoy !
 
-/¡\ Please use your own API key from api.openweathermap.org first !!
+Warning : Please use your own API key from api.openweathermap.org first !!
 
 TODO :
 - Safely fail in case of timeout 
