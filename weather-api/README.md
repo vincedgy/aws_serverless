@@ -20,10 +20,47 @@ Please use your own API key from api.openweathermap.org first !!
 - Safely fail in case of timeout 
 - Externalize OpenWeatherMap.org API KEY 
 
-# Prepare your DynamoDB instance locally
+# Developp locally (yes it's possible !)
+## Prepare your DynamoDB instance locally
+
+- Download & install DynamoDB locally
+    
+    > You need Java to be installed
+    You'll find how to install DynamodDB here : [http://docs.aws.amazon.com/fr_fr/amazondynamodb/latest/developerguide/DynamoDBLocal.html](http://docs.aws.amazon.com/fr_fr/amazondynamodb/latest/developerguide/DynamoDBLocal.html)
+
+- Launch DynamoDB locally
+
+1. Prepare a logging file log4j.properties
+```
+$ echo "
+log4j.rootLogger=DEBUG, stdout
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender 
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=LOG%d %p [%c] - %m%n
+" > log4j.properties
+```
+
+2. Open a terminal on the side and launch DynamoDB
+
+You need to reside in the local DynamoDb directory where you have unzip the installation zip file
+
+```
+java -Djava.library.path=./DynamoDBLocal_lib -Dlog4j.configuration=log4j.properties -jar DynamoDBLocal.jar -sharedDb
+```
+
+- Create "weather" table
+
+```
+aws dynamodb create-table \
+--endpoint-url http://localhost:8000 \
+--table-name weather \
+--attribute-definitions AttributeName=location,AttributeType=S \
+--key-schema AttributeName=location,KeyType=HASH \
+--provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 
+```
 
 - List local tables
-``aws dynamodb list-tables --endpoint-url http://localhost:8000
 
-- Create weather table
-``aws dynamodb create-table 
+```
+aws dynamodb list-tables --endpoint-url http://localhost:8000
+```
