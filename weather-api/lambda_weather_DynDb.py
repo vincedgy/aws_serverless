@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 """
 weather.py : An AWS lambda fonction for getting weather information from internet
 Author : Vincent DAGOURY
@@ -16,14 +17,19 @@ TODO :
 - Externalize OpenWeatherMap.org API KEY
 """
 from __future__ import print_function  # Python 2/3 compatibility
+import urllib
+import urllib2
 import traceback
 import json
 import logging
 import sys
-import urllib
-import urllib2
+
 import boto3
 from botocore.exceptions import ClientError
+
+# Define decimal precision
+from decimal import *
+getcontext().prec = 3
 
 LOGGING_LEVEL = 'INFO'
 #logging.basicConfig(
@@ -48,8 +54,8 @@ REQUEST_HEADERS = {
 }
 
 # Globals
-_dynamodb = boto3.resource('dynamodb', region_name='eu-west-1', endpoint_url='http://localhost:8000')
-##_dynamodb = boto3.resource("dynamodb", region_name='eu-west-1')    
+##_dynamodb = boto3.resource('dynamodb', region_name='eu-west-1', endpoint_url='http://localhost:8000')
+_dynamodb = boto3.resource("dynamodb", region_name='eu-west-1')    
 
 ## Uncomment If you use DynDb localy for testing
 def getTable(dynamodb, tablename):
@@ -89,37 +95,91 @@ def get_weather(table, q):
         return data
 
 # =============================================================================
+def mapData(data, q):
+    try:
+        # The whole item to send back
+        myItem = {}
+        # Handle Weather information
+        weatherList=[]
+        for a in data['list']:
+            # Handle Subweather information
+            subweatherList=[]
+            for b in a['weather']:
+                subweather = {
+                    'main' : b['main'],
+                    'id' : b['id'],
+                    'icon' : b['icon'],
+                    'description' : b['description']
+                }
+                subweatherList.append(subweather)
+            # Build list item to be added to weatherList
+            weather = {
+                'clouds' : {
+                    'all' : a['clouds']['all']
+                },
+                #'rain' : repr(a['rain']),
+                #'snow' : repr(a['snow']),
+                #'sys' : repr(a['sys']),
+                'dt_txt' : a['dt_txt'],
+                'dt' : a['dt'],
+                'wind' : {
+                    'speed' : Decimal(repr(a['wind']['speed'])),
+                    'deg' : Decimal(repr(a['wind']['deg']))
+                },
+                'weather' : subweatherList,
+                'main' : {
+                    'temp_kf' : Decimal(repr(a['main']['temp_kf'])),
+                    'temp' : Decimal(repr(a['main']['temp'])),
+                    'grnd_level' : Decimal(repr(a['main']['grnd_level'])),
+                    'temp_max' : Decimal(repr(a['main']['temp_max'])),
+                    'sea_level' : Decimal(repr(a['main']['sea_level'])),
+                    'humidity' : a['main']['humidity'],
+                    'pressure' : Decimal(repr(a['main']['pressure'])),
+                    'temp_min' : Decimal(repr(a['main']['temp_min']))
+                }
+            }
+            # rain field
+            if len(a['rain']) > 0:
+                weather['rain'] = { '3h': Decimal(repr(a['rain']['3h'])) }
+            # snow field
+            try:
+                weather['snow'] = { '3h': Decimal(repr(a['snow']['3h'])) }
+            except:
+                pass
+            #
+            weatherList.append(weather)
+        myItem = {
+            'location' : q,
+            'cod' : data['cod'],
+            'cnt' : data['cnt'],
+            'city' : {
+                'country' : data['city']['country'],
+                'id' : data['city']['id'],
+                'coord' : {
+                    'lat' : Decimal(repr(data['city']['coord']['lat'])),
+                    'lon' : Decimal(repr(data['city']['coord']['lon']))
+                }
+            },
+            'list': weatherList
+        }
+        
+    except (Exception, ClientError) as error:
+            logging.error(error)
+    finally:
+        return myItem
+
+# =============================================================================
 def save_weather_data(table, q, data):
     """xxx"""
-    if q is None or data is None:
-        return
-    else:
-        try:
-            item = {}
-            item['location'] = q
-            item['list']={}
-            for i in xrange(0, len(data['list'])):
-                item['list'][i] = data['list'][i]
-                i += 1
-            item['city'] = {}
-            item['city']['country'] = data['city']['country']
-            item['city']['id'] = data['city']['id']
-            item['city']['coord']={}
-            item['city']['coord']['lat'] = str(data['city']['coord']['lat'])
-            item['city']['coord']['lon'] = str(data['city']['coord']['lon'])
-            item['cod'] = data['cod']
-            item['cnt'] = data['cnt']
-            #item['list'] = json.dumps(data['list'])
-            response = table.put_item(Item = item)
+    try:
+        if not (q is None or data is None):
+            response = table.put_item(Item = mapData(data,q))
             if response['ResponseMetadata']['HTTPStatusCode'] == 200:
                 logging.info("PutItem succeeded:")
-                logging.debug(json.dumps(item, indent=4))
-        except (Exception, ClientError) as error:
-            logging.error(error)
-        finally:
-            return data
-    return
-
+    except (Exception, ClientError) as error:
+        logging.error(error)
+    finally:
+        return data
 
 # =============================================================================
 def lambda_handler(event, context):
@@ -144,7 +204,7 @@ def lambda_handler(event, context):
         data = json.loads(content)
         if content is not None and len(content) > 1:
             logging.info('Saving data for location ' + params['q'] + ' to DynDb.')
-            save_weather_data(table, params['q'], json.loads(content))
+            save_weather_data(table, params['q'], data)
         else:
             logging.info('No data found for location ' + + params['q'])
     logging.info('Returning result (even if it''s empty) and ending.')
@@ -157,6 +217,6 @@ def lambda_handler(event, context):
 # =============================================================================
 if __name__ == '__main__':
     logging.info('Starting main function (for testing...')
-    EVENT = {'queryStringParameters':{'q':'Orleans'}}
+    EVENT = {'queryStringParameters':{'q':'Paris'}}
     CONTEXT = ''
     logging.info(lambda_handler(EVENT, CONTEXT))
