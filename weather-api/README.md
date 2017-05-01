@@ -45,11 +45,10 @@ log4j.appender.stdout.layout.ConversionPattern=LOG%d %p [%c] - %m%n
 You need to reside in the local DynamoDb directory where you have unzip the installation zip file
 
 ```
-java -Djava.library.path=./DynamoDBLocal_lib -Dlog4j.configuration=log4j.properties -jar DynamoDBLocal.jar -sharedDb
+java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb -port 8000
 ```
 
 - Create "weather" table
-
 ```
 aws dynamodb create-table \
 --endpoint-url http://localhost:8000 \
@@ -63,4 +62,19 @@ aws dynamodb create-table \
 
 ```
 aws dynamodb list-tables --endpoint-url http://localhost:8000
+```
+
+- Dump content of "weather" table
+```
+aws dynamodb scan --table-name "weather" --endpoint-url http://localhost:8000
+```
+
+- Get one item from "weather" table for one specific key
+```
+aws dynamodb get-item --table-name "weather" --endpoint-url http://localhost:8000 --key '{"location":{"S":"Paris"}}'
+```
+
+- Delete table
+```
+aws dynamodb delete-table --table-name "weather" --endpoint-url http://localhost:8000
 ```
