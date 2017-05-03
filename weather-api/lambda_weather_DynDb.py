@@ -54,8 +54,8 @@ REQUEST_HEADERS = {
 }
 
 # Globals
-##_dynamodb = boto3.resource('dynamodb', region_name='eu-west-1', endpoint_url='http://localhost:8000')
-_dynamodb = boto3.resource("dynamodb", region_name='eu-west-1')    
+## _dynamodb = boto3.resource("dynamodb", region_name='eu-west-1')    
+_dynamodb = boto3.resource('dynamodb', region_name='eu-west-1', endpoint_url='http://localhost:8000')
 
 ## Uncomment If you use DynDb localy for testing
 def getTable(dynamodb, tablename):
